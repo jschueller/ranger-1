@@ -1,5 +1,5 @@
 project(ranger)
-cmake_minimum_required(VERSION 2.0)
+cmake_minimum_required(VERSION 3.2)
 
 ## ======================================================================================##
 ## Check for C++11. For GCC this is >=4.7
