@@ -1,46 +1,35 @@
-project(ranger)
 cmake_minimum_required(VERSION 3.2)
+
+set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
+
+project(ranger)
+
+option(BUILD_SHARED_LIBS "shared/static lib" ON)
+
+include (GNUInstallDirs)
 
 ## ======================================================================================##
 ## Check for C++11. For GCC this is >=4.7
 ## ======================================================================================##
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-if(COMPILER_SUPPORTS_CXX11)
-  message("Compiler with C++11 support found.")
-else()
-  message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler, i.e. gcc >= 4.7 or Clang >= 3.0.")
-endif()
-
-## ======================================================================================##
-## Compiler flags
-## ======================================================================================##
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
+set (CMAKE_CXX_STANDARD 11)
 
 ## ======================================================================================##
 ## In Clang phtread flag only for compiler, not for linker. For
 ## windows use static linking
 ## ======================================================================================##
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS -pthread)
-elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows") 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread -static")
-else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-endif()
+find_package (Threads)
 
 ## ======================================================================================##
 ## Subdirectories and source files
 ## ======================================================================================##
 include_directories(src src/utility src/Forest src/Tree)
-file(GLOB_RECURSE SOURCES src/*.cpp)
+file(GLOB_RECURSE SOURCES src/utility/*.cpp src/Forest/*.cpp src/Tree/*.cpp)
+file(GLOB_RECURSE HEADERS src/*.h)
+install (FILES ${HEADERS} DESTINATION include/ranger)
 
 ## ======================================================================================##
 ## Debug and release targets
 ## ======================================================================================##
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
 ADD_CUSTOM_TARGET(debug
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
@@ -52,8 +41,21 @@ ADD_CUSTOM_TARGET(release
   COMMENT "Switch CMAKE_BUILD_TYPE to Release"
   )
 
+add_library(ranger ${SOURCES})
+if (Threads_FOUND)
+  target_link_libraries(ranger ${CMAKE_THREAD_LIBS_INIT})
+endif ()
+install(TARGETS ranger RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	               LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		       ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
 ## ======================================================================================##
 ## Executable
 ## ======================================================================================##
-add_executable(ranger ${SOURCES})
+add_executable(ranger-cli src/main.cpp)
+set_target_properties(ranger-cli PROPERTIES OUTPUT_NAME ranger)
+target_link_libraries(ranger-cli ranger)
+install(TARGETS ranger-cli DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+
 
